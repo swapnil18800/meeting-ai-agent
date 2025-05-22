@@ -1,0 +1,49 @@
+import os
+
+structure = """
+streamlit-app/
+├── app.py
+├── Dockerfile
+├── requirements.txt
+├── .github/
+│   └── workflows/
+│       └── deploy.yml
+├── scripts/
+│   └── deploy_container.sh
+├── .dockerignore
+└── nginx/
+    └── app.conf
+"""
+
+def is_file(entry):
+    return '.' in entry and not entry.endswith('/')
+
+def create_structure(base_path, structure):
+    lines = structure.strip().split('\n')
+    path_stack = []
+
+    for line in lines:
+        level = line.count('│') + line.count('    ') // 4
+        name = line.strip("├─└ ")
+
+        # Skip top-level 'streamlit-app/' folder
+        if name == 'streamlit-app/':
+            continue
+
+        # Update path stack to the current depth
+        path_stack = path_stack[:level]
+        path_stack.append(name)
+
+        full_path = os.path.join(base_path, *path_stack)
+
+        if is_file(name):
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            with open(full_path, 'w') as f:
+                pass
+        else:
+            os.makedirs(full_path, exist_ok=True)
+
+if __name__ == "__main__":
+    base_path = "."  # current folder
+    create_structure(base_path, structure)
+    print(f"[SUCCESS] Project structure created inside: {os.path.abspath(base_path)}")
