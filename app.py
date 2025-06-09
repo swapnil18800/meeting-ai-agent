@@ -16,18 +16,18 @@ from utils import TodoistTools, TranscriptExtractor, TelegramCommunicator, TaskE
 
 # Helper functions
 def initialize_session_state():
-    """Initialize all session state variables with environment variable fallbacks"""
+    """Initialize all session state variables"""
     defaults = {
-        "setup": False,
-        "openai_api_key": os.getenv("OPENAI_API_KEY", ""),  # Check env first
+        "setup": None,
+        "openai_api_key": os.getenv("OPENAI_API_KEY", ""),  # Get from environment first
         "prepared": False,
         "vectorstore": None,
         "context_analysis": None,
         "meeting_strategy": None,
         "executive_brief": None,
-        "todoist_api_key": os.getenv("TODOIST_API_KEY", ""),  # Check env first
-        "telegram_bot_token": os.getenv("TELEGRAM_BOT_TOKEN", ""),  # Check env first
-        "telegram_chat_id": os.getenv("TELEGRAM_CHAT_ID", ""),  # Check env first
+        "todoist_api_key": os.getenv("TODOIST_API_KEY", ""),  # Get from environment first
+        "telegram_bot_token": os.getenv("TELEGRAM_BOT_TOKEN", ""),  # Get from environment first
+        "telegram_chat_id": os.getenv("TELEGRAM_CHAT_ID", ""),  # Get from environment first
         "transcript_source": "google_meet",
         "meeting_id": "",
         "todoist_manager": None,
@@ -117,8 +117,7 @@ FORMAT IN MARKDOWN with clear headings.
 """,
         agent=context_agent,
         expected_output="""A markdown-formatted context analysis with sections for Executive Summary, 
-        Company Background, Situation Analysis, Key Stakeholders, and Strategic Considerations. 
-        Please maintain H2 headings for these sections, and a H1 title summarizing the overall output"""
+        Company Background, Situation Analysis, Key Stakeholders, and Strategic Considerations."""
     )
     
     strategy_task = Task(
@@ -132,8 +131,7 @@ FORMAT IN MARKDOWN with clear headings.
 """,
         agent=strategy_agent,
         expected_output="""A markdown-formatted meeting strategy with sections for Meeting Overview, 
-        Detailed Agenda, Key Talking Points, and Success Criteria. 
-        Please maintain H2 headings for these sections, and a H1 title summarizing the overall output"""
+        Detailed Agenda, Key Talking Points, and Success Criteria."""
     )
     
     brief_task = Task(
@@ -147,8 +145,7 @@ FORMAT IN MARKDOWN with clear headings.
 """,
         agent=brief_agent,
         expected_output="""A markdown-formatted executive briefing with sections for Executive Summary, 
-        Key Talking Points, Q&A Preparation, and Next Steps. 
-        Please maintain H2 headings for these sections, and a H1 title summarizing the overall output"""
+        Key Talking Points, Q&A Preparation, and Next Steps."""
     )
     
     # Run crew
@@ -160,13 +157,7 @@ FORMAT IN MARKDOWN with clear headings.
     )
     
     # Execute crew
-    crew.kickoff()
-
-    return [
-        context_task.output.raw,
-        strategy_task.output.raw,
-        brief_task.output.raw
-    ]
+    return crew.kickoff()
 
 def extract_content(result_item):
     """Extract content from CrewAI result item"""
@@ -313,66 +304,49 @@ def main():
     
     # Sidebar for API keys
     with st.sidebar:
-        # Get environment variables
-        env_openai_key = os.getenv("OPENAI_API_KEY", "")
-        env_todoist_key = os.getenv("TODOIST_API_KEY", "")
-        env_telegram_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
-        env_telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
-        
-        # OpenAI API Key
-        openai_api_key = st.text_input(
-            "OpenAI API Key", 
-            type="password", 
-            value=st.session_state.get("openai_api_key", "") if not env_openai_key else "",
-            placeholder="Using environment key" if env_openai_key else "Enter your OpenAI API key"
-        )
-        
-        # Use environment key if available, otherwise use input
-        final_openai_key = env_openai_key or openai_api_key
-        st.session_state["openai_api_key"] = final_openai_key
-        if final_openai_key:
-            os.environ["OPENAI_API_KEY"] = final_openai_key
-        
-        # Todoist API Key
-        todoist_api_key = st.text_input(
-            "Todoist API Key", 
-            type="password", 
-            value=st.session_state.get("todoist_api_key", "") if not env_todoist_key else "",
-            placeholder="Using environment key" if env_todoist_key else "Enter your Todoist API key"
-        )
-        
-        # Use environment key if available, otherwise use input
-        final_todoist_key = env_todoist_key or todoist_api_key
-        if final_todoist_key != st.session_state.get("todoist_api_key", ""):
-            st.session_state["todoist_api_key"] = final_todoist_key
-            st.session_state["todoist_manager"] = None  # Reset manager
+        # Check if OpenAI API key is available from environment
+        if st.session_state["openai_api_key"]:
+            st.success("OpenAI API Key loaded from environment")
+            os.environ["OPENAI_API_KEY"] = st.session_state["openai_api_key"]
         else:
-            st.session_state["todoist_api_key"] = final_todoist_key
+            openai_api_key = st.text_input("OpenAI API Key", type="password", value=st.session_state["openai_api_key"])
+            if openai_api_key:
+                st.session_state["openai_api_key"] = openai_api_key
+                os.environ["OPENAI_API_KEY"] = openai_api_key
         
-        # Telegram Integration (Optional)
+        # Check if Todoist API key is available from environment
+        if st.session_state["todoist_api_key"]:
+            st.success("Todoist API Key loaded from environment")
+        else:
+            todoist_api_key = st.text_input("Todoist API Key", type="password", value=st.session_state["todoist_api_key"])
+            if todoist_api_key != st.session_state["todoist_api_key"]:
+                st.session_state["todoist_api_key"] = todoist_api_key
+                st.session_state["todoist_manager"] = None
+        
+        # Add Telegram API key inputs (optional)
         with st.expander("Telegram Integration (Optional)"):
-            telegram_bot_token = st.text_input(
-                "Telegram Bot Token", 
-                type="password", 
-                value=st.session_state.get("telegram_bot_token", "") if not env_telegram_token else "",
-                placeholder="Using environment token" if env_telegram_token else "Enter your bot token"
-            )
-            telegram_chat_id = st.text_input(
-                "Telegram Chat ID", 
-                value=st.session_state.get("telegram_chat_id", "") if not env_telegram_chat_id else "",
-                placeholder="Using environment ID" if env_telegram_chat_id else "Enter your chat ID"
-            )
-            
-            # Use environment values if available, otherwise use input
-            final_telegram_token = env_telegram_token or telegram_bot_token
-            final_telegram_chat_id = env_telegram_chat_id or telegram_chat_id
-            
-            # Always update session state
-            st.session_state["telegram_bot_token"] = final_telegram_token
-            st.session_state["telegram_chat_id"] = final_telegram_chat_id
-            
-        st.info("This app helps prepare for meetings by analyzing company info, creating agendas, answering questions, and managing tasks.")
+            if st.session_state["telegram_bot_token"] and st.session_state["telegram_chat_id"]:
+                st.success("Telegram credentials loaded from environment")
+            else:
+                telegram_bot_token = st.text_input("Telegram Bot Token", type="password", value=st.session_state["telegram_bot_token"])
+                telegram_chat_id = st.text_input("Telegram Chat ID", value=st.session_state["telegram_chat_id"])
+                
+                # Check if credentials changed
+                telegram_credentials_changed = False
+                if telegram_bot_token != st.session_state["telegram_bot_token"]:
+                    st.session_state["telegram_bot_token"] = telegram_bot_token
+                    telegram_credentials_changed = True
+
+                if telegram_chat_id != st.session_state["telegram_chat_id"]:
+                    st.session_state["telegram_chat_id"] = telegram_chat_id
+                    telegram_credentials_changed = True
+
+                # Reinitialize manager if credentials changed
+                if telegram_credentials_changed and st.session_state["todoist_api_key"]:
+                    st.session_state["todoist_manager"] = None  # Force reinitialization
         
+        st.info("This app helps prepare for meetings by analyzing company info, creating agendas, answering questions, and managing tasks.")
+    
     # Main tabs
     tab_setup, tab_results, tab_qa, tab_tasks = st.tabs(["Meeting Setup", "Preparation Results", "Q&A Assistant", "Task Management"])
 
@@ -395,8 +369,9 @@ def main():
         uploaded_files = st.file_uploader("Upload Documents", accept_multiple_files=True, type=["txt", "pdf"])
 
         if st.button("Prepare Meeting", type="primary", use_container_width=True):
-            if not openai_api_key or not company_name or not meeting_objective:
-                st.error("Please fill in all required fields and API key.")
+            # Updated validation - check session state instead of local variables
+            if not st.session_state["openai_api_key"] or not company_name or not meeting_objective:
+                st.error("Please fill in all required fields. OpenAI API key is required.")
             else:
                 attendees_formatted = []
                 for _, row in attendees_data.iterrows():

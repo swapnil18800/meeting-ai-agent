@@ -16,18 +16,18 @@ from utils import TodoistTools, TranscriptExtractor, TelegramCommunicator, TaskE
 
 # Helper functions
 def initialize_session_state():
-    """Initialize all session state variables with environment variable fallbacks"""
+    """Initialize all session state variables"""
     defaults = {
-        "setup": False,
-        "openai_api_key": os.getenv("OPENAI_API_KEY", ""),  # Check env first
+        "setup": None,
+        "openai_api_key": "",
         "prepared": False,
         "vectorstore": None,
         "context_analysis": None,
         "meeting_strategy": None,
         "executive_brief": None,
-        "todoist_api_key": os.getenv("TODOIST_API_KEY", ""),  # Check env first
-        "telegram_bot_token": os.getenv("TELEGRAM_BOT_TOKEN", ""),  # Check env first
-        "telegram_chat_id": os.getenv("TELEGRAM_CHAT_ID", ""),  # Check env first
+        "todoist_api_key": "",
+        "telegram_bot_token": "",
+        "telegram_chat_id": "",
         "transcript_source": "google_meet",
         "meeting_id": "",
         "todoist_manager": None,
@@ -304,66 +304,40 @@ def main():
     
     # Sidebar for API keys
     with st.sidebar:
-        # Get environment variables
-        env_openai_key = os.getenv("OPENAI_API_KEY", "")
-        env_todoist_key = os.getenv("TODOIST_API_KEY", "")
-        env_telegram_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
-        env_telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
+        openai_api_key = st.text_input("OpenAI API Key", type="password", value=st.session_state["openai_api_key"])
+        if openai_api_key:
+            st.session_state["openai_api_key"] = openai_api_key
+            os.environ["OPENAI_API_KEY"] = openai_api_key
         
-        # OpenAI API Key
-        openai_api_key = st.text_input(
-            "OpenAI API Key", 
-            type="password", 
-            value=st.session_state.get("openai_api_key", "") if not env_openai_key else "",
-            placeholder="Using environment key" if env_openai_key else "Enter your OpenAI API key"
-        )
-    
-        # Use environment key if available, otherwise use input
-        final_openai_key = env_openai_key or openai_api_key
-        st.session_state["openai_api_key"] = final_openai_key
-        if final_openai_key:
-            os.environ["OPENAI_API_KEY"] = final_openai_key
+        # Add Todoist API key input
+        todoist_api_key = st.text_input("Todoist API Key", type="password", value=st.session_state["todoist_api_key"])
+        if todoist_api_key != st.session_state["todoist_api_key"]:
+            st.session_state["todoist_api_key"] = todoist_api_key
+            # Reset todoist manager when API key changes
+            st.session_state["todoist_manager"] = None
         
-        # Todoist API Key
-        todoist_api_key = st.text_input(
-            "Todoist API Key", 
-            type="password", 
-            value=st.session_state.get("todoist_api_key", "") if not env_todoist_key else "",
-            placeholder="Using environment key" if env_todoist_key else "Enter your Todoist API key"
-        )
-        
-        # Use environment key if available, otherwise use input
-        final_todoist_key = env_todoist_key or todoist_api_key
-        if final_todoist_key != st.session_state.get("todoist_api_key", ""):
-            st.session_state["todoist_api_key"] = final_todoist_key
-            st.session_state["todoist_manager"] = None  # Reset manager
-        else:
-            st.session_state["todoist_api_key"] = final_todoist_key
-        
-        # Telegram Integration (Optional)
+        # Add Telegram API key inputs (optional)
         with st.expander("Telegram Integration (Optional)"):
-            telegram_bot_token = st.text_input(
-                "Telegram Bot Token", 
-                type="password", 
-                value=st.session_state.get("telegram_bot_token", "") if not env_telegram_token else "",
-                placeholder="Using environment token" if env_telegram_token else "Enter your bot token"
-            )
-            telegram_chat_id = st.text_input(
-                "Telegram Chat ID", 
-                value=st.session_state.get("telegram_chat_id", "") if not env_telegram_chat_id else "",
-                placeholder="Using environment ID" if env_telegram_chat_id else "Enter your chat ID"
-            )
+            telegram_bot_token = st.text_input("Telegram Bot Token", type="password", value=st.session_state["telegram_bot_token"])
+            telegram_chat_id = st.text_input("Telegram Chat ID", value=st.session_state["telegram_chat_id"])
             
-            # Use environment values if available, otherwise use input
-            final_telegram_token = env_telegram_token or telegram_bot_token
-            final_telegram_chat_id = env_telegram_chat_id or telegram_chat_id
-            
-            # Always update session state
-            st.session_state["telegram_bot_token"] = final_telegram_token
-            st.session_state["telegram_chat_id"] = final_telegram_chat_id
-            
-        st.info("This app helps prepare for meetings by analyzing company info, creating agendas, answering questions, and managing tasks.")
+            # Check if credentials changed
+            telegram_credentials_changed = False
+            if telegram_bot_token != st.session_state["telegram_bot_token"]:
+                st.session_state["telegram_bot_token"] = telegram_bot_token
+                telegram_credentials_changed = True
+
+            if telegram_chat_id != st.session_state["telegram_chat_id"]:
+                st.session_state["telegram_chat_id"] = telegram_chat_id
+                telegram_credentials_changed = True
+
+            # Reinitialize manager if credentials changed
+            if telegram_credentials_changed and st.session_state["todoist_api_key"]:
+                st.session_state["todoist_manager"] = None  # Force reinitialization
         
+        st.info("This app helps prepare for meetings by analyzing company info, creating agendas, answering questions, and managing tasks.")
+    
+    # Main tabs
     tab_setup, tab_results, tab_qa, tab_tasks = st.tabs(["Meeting Setup", "Preparation Results", "Q&A Assistant", "Task Management"])
 
     # Meeting Setup Tab
