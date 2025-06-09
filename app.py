@@ -312,33 +312,33 @@ def main():
     initialize_session_state()
     
     # Sidebar for API keys
-with st.sidebar:
-    openai_api_key = st.text_input("OpenAI API Key", type="password", value=st.session_state.get("openai_api_key", ""))
-    if openai_api_key:
-        st.session_state["openai_api_key"] = openai_api_key
-        os.environ["OPENAI_API_KEY"] = openai_api_key
-    
-    # Add Todoist API key input
-    todoist_api_key = st.text_input("Todoist API Key", type="password", value=st.session_state.get("todoist_api_key", ""))
-    if todoist_api_key != st.session_state.get("todoist_api_key", ""):
-        st.session_state["todoist_api_key"] = todoist_api_key
-        # Reset todoist manager when API key changes
-        st.session_state["todoist_manager"] = None
-    
-    # Add Telegram API key inputs (optional)
-    with st.expander("Telegram Integration (Optional)"):
-        telegram_bot_token = st.text_input("Telegram Bot Token", type="password", value=st.session_state.get("telegram_bot_token", ""))
-        telegram_chat_id = st.text_input("Telegram Chat ID", value=st.session_state.get("telegram_chat_id", ""))
+    with st.sidebar:
+        openai_api_key = st.text_input("OpenAI API Key", type="password", value=st.session_state.get("openai_api_key", ""))
+        if openai_api_key:
+            st.session_state["openai_api_key"] = openai_api_key
+            os.environ["OPENAI_API_KEY"] = openai_api_key
         
-        # Check if credentials changed
-        telegram_credentials_changed = False
-        if telegram_bot_token != st.session_state.get("telegram_bot_token", ""):
-            st.session_state["telegram_bot_token"] = telegram_bot_token
-            telegram_credentials_changed = True
-        if telegram_chat_id != st.session_state.get("telegram_chat_id", ""):
-            st.session_state["telegram_chat_id"] = telegram_chat_id
-            telegram_credentials_changed = True
+        # Add Todoist API key input
+        todoist_api_key = st.text_input("Todoist API Key", type="password", value=st.session_state.get("todoist_api_key", ""))
+        if todoist_api_key != st.session_state.get("todoist_api_key", ""):
+            st.session_state["todoist_api_key"] = todoist_api_key
+            # Reset todoist manager when API key changes
+            st.session_state["todoist_manager"] = None
         
+        # Add Telegram API key inputs (optional)
+        with st.expander("Telegram Integration (Optional)"):
+            telegram_bot_token = st.text_input("Telegram Bot Token", type="password", value=st.session_state.get("telegram_bot_token", ""))
+            telegram_chat_id = st.text_input("Telegram Chat ID", value=st.session_state.get("telegram_chat_id", ""))
+            
+            # Check if credentials changed
+            telegram_credentials_changed = False
+            if telegram_bot_token != st.session_state.get("telegram_bot_token", ""):
+                st.session_state["telegram_bot_token"] = telegram_bot_token
+                telegram_credentials_changed = True
+            if telegram_chat_id != st.session_state.get("telegram_chat_id", ""):
+                st.session_state["telegram_chat_id"] = telegram_chat_id
+                telegram_credentials_changed = True
+            
         st.info("This app helps prepare for meetings by analyzing company info, creating agendas, answering questions, and managing tasks.")
     
     # Main tabs
