@@ -4,4 +4,6 @@
 README.md
 *.pyc
 __pycache__/
-.DS_Store r 
+.DS_Store
+.env
+.env.local
