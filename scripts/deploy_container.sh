@@ -56,6 +56,10 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TODOIST_API_KEY: ${{ secrets.TODOIST_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           # Stop and remove existing container if exists
           docker stop streamlit-container 2>/dev/null || true
@@ -65,6 +69,10 @@ jobs:
           docker run -d \
             --name streamlit-container \
             -p 8501:8501 \
+            -e OPENAI_API_KEY="${OPENAI_API_KEY}" \
+            -e TODOIST_API_KEY="${TODOIST_API_KEY}" \
+            -e TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN}" \
+            -e TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID}" \
             --restart always \
             $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
